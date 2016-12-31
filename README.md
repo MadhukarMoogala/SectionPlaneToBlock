@@ -18,3 +18,7 @@ void SectionPlaneToBlock()
 ```
 
 The point of the fake dialog is to ensure that we end up calling `AcSectionUtil::GenerateSection(...)`. This is the key function that we want reuse.
+
+# Simulating a C++ interface in C#
+
+The code also demonstrates how to define C++ interface in C#. i.e. manually laying out a vtable. This could be generalized, interestingly I couldn't find any examples like this on the interweb.
