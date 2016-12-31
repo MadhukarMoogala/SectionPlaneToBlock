@@ -1,0 +1,7 @@
+packages/
+obj/
+.vs/
+bin/
+*.vc.opendb
+*.db
+*.user
