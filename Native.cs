@@ -1,4 +1,5 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -79,7 +80,7 @@ namespace SectionPlaneToBlock
         IntPtr m_ptr;
         GCHandle m_pin;
         IAcApHostDialog.ShowDialog m_delegate;
-        static int showDialog(ref IAcApHostDialog this_, IntPtr parameters)
+        static int ShowDialog(ref IAcApHostDialog this_, IntPtr parameters)
         {
             NativeMethods.AcApHostDialogParams_setReturnCode(parameters, new IntPtr(1));
             var svc = NativeMethods.AcApHostSectionGenerateSettingsDialogParams_getDialogServices(parameters);
@@ -90,7 +91,7 @@ namespace SectionPlaneToBlock
         {
             m_pin = GCHandle.Alloc(m_native, GCHandleType.Pinned);
             m_ptr = m_pin.AddrOfPinnedObject();
-            m_delegate = new IAcApHostDialog.ShowDialog(showDialog);
+            m_delegate = new IAcApHostDialog.ShowDialog(ShowDialog);
             IAcApHostDialog.Init((IntPtr*)m_ptr.ToPointer(), m_delegate, section);
         }
         IntPtr NativePtr { get { return m_ptr; } }
@@ -98,12 +99,35 @@ namespace SectionPlaneToBlock
         {
             using (var fake = new CliSectionPlaneToBlock(section))
             {
+                var point3d = Point3d.Origin;
+                using (var oct = new OpenCloseTransaction())
+                {
+                    var sec = (Section)oct.GetObject(section, OpenMode.ForRead);
+                    Matrix3d transform = Matrix3d.AlignCoordinateSystem(
+                                         sec.Boundary[0],
+                                         sec.Boundary[0].GetVectorTo(sec.Boundary[1]).GetNormal(),
+                                         sec.VerticalDirection,
+                                         sec.ViewingDirection,
+                                         Point3d.Origin,
+                                         Vector3d.XAxis,
+                                         Vector3d.YAxis,
+                                         Vector3d.ZAxis
+                                         );
+                    point3d = point3d.TransformBy(transform);
+                    oct.Commit();
+                }
                 //provide AcSection.crx with a fake dialog implementation. This allows us to reuse the 
                 //block generation code.
                 var dlgProxy = NativeMethods.AcApHostDialogSectionGenerateSettings_instance();
                 NativeMethods.AcApHostDialog_setHost(dlgProxy, fake.NativePtr);
                 var ed = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument.Editor;
-                ed.Command("_SECTIONPLANETOBLOCK");
+                var xScale = 1;
+                var yScale = xScale;
+                var rot = 0;
+                ed.Command("_SECTIONPLANETOBLOCK", point3d, xScale, yScale, rot);
+            
+
+
             }
         }
         #region IDisposable Support
