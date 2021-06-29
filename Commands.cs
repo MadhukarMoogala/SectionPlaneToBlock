@@ -19,8 +19,7 @@ namespace SectionPlaneToBlock
     {
         public static int AppendSectionGeometry(this Section section, ObjectId sourceId, ObjectId btrId)
         {
-            Database db = section.Database;
-            db.Ltscale = 0.1;
+            Database db = section.Database;           
             Matrix3d transform = Matrix3d.AlignCoordinateSystem(
                     section.Boundary[0],
                     section.Boundary[0].GetVectorTo(section.Boundary[1]).GetNormal(),
@@ -44,7 +43,7 @@ namespace SectionPlaneToBlock
                 bool isDivisionLines = true;
                 settings.SetDivisionLines(SectionType.Section2d, SectionGeometry.IntersectionBoundary, isDivisionLines);
                 settings.SetColor(SectionType.Section2d, SectionGeometry.IntersectionBoundary, Color.FromColorIndex(ColorMethod.ByColor, 1));
-                settings.SetLinetype(SectionType.Section2d, SectionGeometry.IntersectionBoundary, "DASHED");
+                settings.SetLinetype(SectionType.Section2d, SectionGeometry.IntersectionBoundary, "DASHED2");
 
                 //customize the section using the settings object
                 settings.CurrentSectionType = SectionType.Section2d;
@@ -120,7 +119,6 @@ namespace SectionPlaneToBlock
         public static void Sp2B()
         {
             var doc = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
-            var db = HostApplicationServices.WorkingDatabase;            
             var opt = new PromptEntityOptions("Select section object");
             opt.SetRejectMessage("Please select a section.");
             opt.AddAllowedClass(typeof(Section), false);
@@ -140,25 +138,43 @@ namespace SectionPlaneToBlock
                 var section = (Section)t.GetObject(sectionId, OpenMode.ForRead);
                 var settings = (SectionSettings)t.GetObject(section.Settings, OpenMode.ForWrite);
                 var solid = (Solid3d)t.GetObject(solidId, OpenMode.ForRead);
-                //customize the section using the settings object
                 bool isForeGroundVisible = true;
+                if (isForeGroundVisible != settings.Visibility(SectionType.Section2d, SectionGeometry.ForegroundGeometry))
+                {
+                    settings.SetVisibility(SectionType.Section2d, SectionGeometry.ForegroundGeometry, isForeGroundVisible);
+                }
                 bool isHiddenLineVisible = true;
-                settings.SetVisibility(SectionType.Section2d, SectionGeometry.ForegroundGeometry, isForeGroundVisible);
-                settings.SetHiddenLine(SectionType.Section2d, SectionGeometry.ForegroundGeometry, isHiddenLineVisible);
+                if(isHiddenLineVisible != settings.HiddenLine(SectionType.Section2d,SectionGeometry.ForegroundGeometry))
+                {
+                    settings.SetHiddenLine(SectionType.Section2d, SectionGeometry.ForegroundGeometry, isHiddenLineVisible);
+                }
+
+
                 bool isDivisionLines = true;
-                settings.SetDivisionLines(SectionType.Section2d, SectionGeometry.IntersectionBoundary, isDivisionLines);
-                settings.SetColor(SectionType.Section2d, SectionGeometry.IntersectionBoundary, Color.FromColorIndex(ColorMethod.ByColor, 1));
-                settings.SetLinetype(SectionType.Section2d, SectionGeometry.IntersectionBoundary, "DASHED");
-                //customize the section using the settings object
-                settings.CurrentSectionType = SectionType.Section2d;
+                if(isDivisionLines != settings.DivisionLines(SectionType.Section2d, SectionGeometry.IntersectionBoundary))
+                {
+                    settings.SetDivisionLines(SectionType.Section2d, SectionGeometry.IntersectionBoundary, isDivisionLines);
+                    settings.SetColor(SectionType.Section2d, SectionGeometry.IntersectionBoundary, Color.FromColorIndex(ColorMethod.ByColor, 1));
+                    settings.SetLinetype(SectionType.Section2d, SectionGeometry.IntersectionBoundary, "DASHED2");
+                }
+                if(settings.GenerationOptions(SectionType.Section2d) != (SectionGeneration.SourceSelectedObjects | SectionGeneration.DestinationNewBlock))
+                {
+                    settings.SetGenerationOptions(SectionType.Section2d, SectionGeneration.SourceSelectedObjects | SectionGeneration.DestinationNewBlock);
+                }
+              
+                if(settings.CurrentSectionType != SectionType.Section2d)
+                {
+                    //customize the section using the settings object
+                    settings.CurrentSectionType = SectionType.Section2d;
+                }                
                 settings.SetSourceObjects(SectionType.Section2d, new ObjectIdCollection() { solidId });
-                settings.SetGenerationOptions(SectionType.Section2d, SectionGeneration.SourceSelectedObjects | SectionGeneration.DestinationNewBlock);                
+                                
                 //etc.
                 t.Commit();
             }
             if (!SystemObjects.DynamicLinker.IsModuleLoaded("acsection.crx"))
                 SystemObjects.DynamicLinker.LoadModule("acsection.crx", false, true);
-            CliSectionPlaneToBlock.Run(res.ObjectId);
+            CliSectionPlaneToBlock.Run(sectionId);
         }
     }
 }
