@@ -21,6 +21,10 @@ The point of the fake dialog is to ensure that we end up calling `AcSectionUtil:
 
  We also created `SECTION2D` command to show how to use Section .NET API to create sectioning geomerties.
 
+### DEMO
+
+![SECTIONIMAGE](https://github.com/MadhukarMoogala/SectionPlaneToBlock/blob/master/SectionDemo.gif)
+
  ### Nota Bene
  After running SP2B, if you SECTIONPLANETOBLOCK command, application crashes.
  The intent of SP2B is to use in AcCore environment or automation projects.
